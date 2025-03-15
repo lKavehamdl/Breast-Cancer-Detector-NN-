@@ -185,7 +185,7 @@ def _tensor_log(t: Tensor) -> Tensor:
 def _tensor_exp(t: Tensor) -> Tensor:
     "TODO: tensor exp"
     data = np.exp(t.data)
-    req_grad = req_grad
+    req_grad = t.requires_grad
 
     if req_grad:
         def grad_fn(grad: np.ndarray):
@@ -201,7 +201,7 @@ def _tensor_exp(t: Tensor) -> Tensor:
 def _tensor_pow(t: Tensor, power: float) -> Tensor:
     "TODO: tensor power"
     data = pow(t.data, power)
-    req_grad = req_grad
+    req_grad = t.requires_grad
 
     if req_grad:
         def grad_fn(grad: np.ndarray):

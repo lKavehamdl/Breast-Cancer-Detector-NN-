@@ -5,13 +5,13 @@ def relu(x: Tensor) -> Tensor:
     "TODO: implement relu function"
 
     # use np.maximum
-    data = ...
-    req_grad = ...
+    data = np.maximum(0, x.data)
+    req_grad = x.requires_grad
 
     if req_grad:
         def grad_fn(grad: np.ndarray):
             # use np.where
-            return ...
+            return grad * (x.data > 0).astype(np.float64)
 
         depends_on = [Dependency(x, grad_fn)]
     else:

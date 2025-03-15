@@ -8,12 +8,13 @@ def leaky_relu(x: Tensor) -> Tensor:
     hint: use np.where like Relu method but for LeakyRelu
     """
 
-    data = ...
-    req_grad = ...
+    data = np.maximum(.01 * x.data, x.data)
+    req_grad = x.requires_grad
 
     if req_grad:
         def grad_fn(grad: np.ndarray):
-            return ...
+            tmp = np.where(x.data > 0, 1, .01)
+            return grad* tmp
 
         depends_on = [Dependency(x, grad_fn)]
     else:
