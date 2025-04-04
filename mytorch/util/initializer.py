@@ -33,7 +33,7 @@ def zero_initializer(shape):
 def one_initializer(shape):
     return np.ones(shape, dtype=np.float64)
 
-def initializer(shape, mode="xavier"):
+def initializer(shape, mode="random_normal"):
     if mode == "xavier":
         return xavier_initializer(shape)
     elif mode == "he":

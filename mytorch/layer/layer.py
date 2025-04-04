@@ -21,6 +21,14 @@ class Layer:
 
     def parameters(self):
         return None
+    
+    # Added to support gradient
+    def grad(self):
+        return None
+    
+    # Added
+    def update_parameters(self, weight):
+        return None
 
     def __str__(self) -> str:
         return "Layer class is an abstract for other type of layers"

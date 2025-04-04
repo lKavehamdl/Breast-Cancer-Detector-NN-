@@ -20,61 +20,62 @@ class Conv2d(Layer):
 
     def forward(self, x: Tensor) -> Tensor:
         "TODO: implement forward pass"
-        batch_size, _, in_h, in_w = x.shape
-        k_h, k_w = self.kernel_size
-        stride_h, stride_w = self.stride
-        pad_h, pad_w = self.padding
-        
-        out_h = (in_h + 2 * pad_h - k_h) // stride_h + 1
-        out_w = (in_w + 2 * pad_w - k_w) // stride_w + 1
-        
-        padded_x = np.pad(x.data, 
-                         ((0, 0), (0, 0), (pad_h, pad_h), (pad_w, pad_w)),
-                         mode='constant')
-        
-        output = np.zeros((batch_size, self.out_channels, out_h, out_w))
-        
-        for b in range(batch_size):
-            for c_out in range(self.out_channels):
-                for h in range(out_h):
-                    for w in range(out_w):
-                        h_start = h * stride_h
-                        w_start = w * stride_w
-                        receptive_field = padded_x[b, :, h_start:h_start+k_h, w_start:w_start+k_w]
-                        output[b, c_out, h, w] = np.sum(receptive_field * self.weight.data[c_out])
-        
-        if self.need_bias:
-            output += self.bias.data.reshape(1, -1, 1, 1)
-            
-        return Tensor(output, requires_grad=x.requires_grad)
+        # x.shape[0] is number of samples
+        x = np.pad(x, ((0, 0), (self.padding[0], self.padding[0]), (self.padding[1], self.padding[1]), (0, 0)))
+        n1 = x.shape[1] - self.kernel_size[0]
+        n2 = x.shape[2] - self.kernel_size[1]
+        y = Tensor(data=np.zeros((x.shape[0], n1//self.stride[0] + 1, n2//self.stride[1] + 1, self.out_channels)))
+        for t in range(x.shape[0]):
+            for i in range(0, n1, self.stride[0]):
+                for j in range(0, n2, self.stride[1]):
+                    for k in range(self.out_channels):
+                        y[t, i//self.stride[0], j//self.stride[1], k] = x[t, i:i+self.kernel_size[0], j:j+self.kernel_size[1], :] * self.weight + self.bias
+
+        return y
     
     def initialize(self):
         "TODO: initialize weights"
         self.weight = Tensor(
-            data=initializer((self.out_channels, self.in_channels, *self.kernel_size), 
-            mode=self.initialize_mode),
+            data=initializer((*self.kernel_size, self.in_channels, self.out_channels), 
+                             self.kernel_size[0] * self.kernel_size[1] * self.in_channels,
+                             self.kernel_size[0] * self.kernel_size[1] * self.out_channels,
+                             self.initialize_mode),
             requires_grad=True
         )
 
         if self.need_bias:
             self.bias = Tensor(
-                data=initializer((self.out_channels,), mode="zero"),
+                data=initializer((1, 1, 1, self.out_channels),
+                                 self.kernel_size[0] * self.kernel_size[1] * self.in_channels,
+                                 self.kernel_size[0] * self.kernel_size[1] * self.out_channels,
+                                 self.initialize_mode),
                 requires_grad=True
             )
-
 
     def zero_grad(self):
         "TODO: implement zero grad"
         self.weight.zero_grad()
+
         if self.need_bias:
             self.bias.zero_grad()
 
     def parameters(self):
         "TODO: return weights and bias"
-        params = [self.weight]
         if self.need_bias:
-            params.append(self.bias)
-        return params
+            return np.stack((self.weight.data, np.broadcast_to(self.bias.data, (*self.kernel_size, self.in_channels, self.out_channels))))
+        else:
+            return self.weight.data
+        
+    def grad(self):
+        if self.need_bias:
+            return np.stack((self.weight.grad.data, np.broadcast_to(self.bias.grad.data, (*self.kernel_size, self.in_channels, self.out_channels))))
+        else:
+            return self.weight.grad.data
+        
+    def update_parameters(self, weight):
+        if self.need_bias:
+            self.weight.data = weight[0, :, :, :, :]
+            self.bias.data = weight[1, 0, 0, 0, :].reshape((1, 1, 1, -1))
     
     def __str__(self) -> str:
         return "conv 2d - total params: {} - kernel: {}, stride: {}, padding: {}".format(
