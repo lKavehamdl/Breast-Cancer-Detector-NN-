@@ -217,9 +217,9 @@ def _tensor_pow(t: Tensor, power: float) -> Tensor:
 def _tensor_slice(t: Tensor, idcs) -> Tensor:
     "TODO: tensor slice"
     data = t.data[idcs]
-    requires_grad = requires_grad
+    req_grad = t.requires_grad
 
-    if requires_grad:
+    if req_grad:
         def grad_fn(grad: np.ndarray) -> np.ndarray:
             bigger_grad = np.zeros_like(t.data)
             bigger_grad[idcs] = grad
@@ -229,18 +229,18 @@ def _tensor_slice(t: Tensor, idcs) -> Tensor:
     else:
         depends_on = []
 
-    return Tensor(data, requires_grad, depends_on)
+    return Tensor(data, req_grad, depends_on)
 
 def _tensor_neg(t: Tensor) -> Tensor:
     "TODO: tensor negative"
     data = -1 * t.data
-    requires_grad = requires_grad
-    if requires_grad:
+    req_grad = t.requires_grad
+    if req_grad:
         depends_on = [Dependency(t, lambda x: -x)]
     else:
         depends_on = []
 
-    return Tensor(data, requires_grad, depends_on)
+    return Tensor(data, req_grad, depends_on)
 
 def _add(t1: Tensor, t2: Tensor) -> Tensor:
     data = t1.data + t2.data
@@ -276,7 +276,6 @@ def _add(t1: Tensor, t2: Tensor) -> Tensor:
         requires_grad=req_grad,
         depends_on=depends_on
     )
-
 
 def _sub(t1: Tensor, t2: Tensor) -> Tensor:
     "TODO: implement sub"
